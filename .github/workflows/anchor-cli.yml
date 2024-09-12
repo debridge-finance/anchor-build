@@ -35,6 +35,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -72,13 +74,17 @@ jobs:
           fi
           mv ~/.cargo/bin/anchor ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
 
-      - name: Upload Anchor CLI binary
-        uses: actions/upload-artifact@v4
+      - name: Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
-          path: ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
+          tag_name: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
+          name: Anchor CLI ${{ steps.set_version.outputs.version_or_rev }} for ${{ github.event.inputs.target }}
+          files: ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
 
-      - name: Get artifact URL
+      - name: Get Release URL
         run: |
-          echo "Artifact URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "Release URL: ${{ steps.release.outputs.url }}"
           echo "Binary name: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}"
