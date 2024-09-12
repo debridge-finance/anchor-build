@@ -59,10 +59,10 @@ jobs:
       - name: Build Anchor CLI
         run: |
           if [ -n "${{ github.event.inputs.rev }}" ]; then
-            RUSTFLAGS='-C target-feature=+crt-static' cargo install anchor-cli --rev ${{ github.event.inputs.rev }} --target ${{ github.event.inputs.target }}
+            RUSTFLAGS='-C target-feature=+crt-static' cargo install --git https://github.com/coral-xyz/anchor --rev ${{ github.event.inputs.rev }} --target ${{ github.event.inputs.target }} anchor-cli --locked
           else
             VERSION="${{ github.event.inputs.anchor_version }}"
-            RUSTFLAGS='-C target-feature=+crt-static' cargo install anchor-cli --version ${VERSION} --target ${{ github.event.inputs.target }}
+            RUSTFLAGS='-C target-feature=+crt-static' cargo install --git https://github.com/coral-xyz/anchor --tag v${VERSION} --target ${{ github.event.inputs.target }} anchor-cli --locked
           fi
           mv ~/.cargo/bin/anchor ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
 
