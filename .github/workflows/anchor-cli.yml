@@ -37,19 +37,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get upgrade -y
-          sudo apt-get install -y pkg-config build-essential libudev-dev
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: pkg-config build-essential libudev-dev musl-tools
+          version: 1.0
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ github.event.inputs.rust_version }}
           targets: ${{ github.event.inputs.target }}
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.5
 
       - name: Set version or rev
         id: set_version
@@ -80,4 +79,3 @@ jobs:
         run: |
           echo "Artifact URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           echo "Binary name: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}"
-          
