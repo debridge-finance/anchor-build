@@ -50,6 +50,9 @@ jobs:
           toolchain: ${{ github.event.inputs.rust_version }}
           targets: ${{ github.event.inputs.target }}
 
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.5
+
       - name: Set version or rev
         id: set_version
         run: |
