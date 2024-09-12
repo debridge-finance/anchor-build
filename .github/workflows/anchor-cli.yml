@@ -46,15 +46,6 @@ jobs:
           packages: pkg-config build-essential libudev-dev musl-tools
           version: 1.0
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ github.event.inputs.rust_version }}
-          targets: ${{ github.event.inputs.target }}
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.5
-
       - name: Set version or rev
         id: set_version
         run: |
@@ -64,7 +55,23 @@ jobs:
             echo "version_or_rev=${{ github.event.inputs.anchor_version }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ github.event.inputs.rust_version }}
+          targets: ${{ github.event.inputs.target }}
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.5
+
+      - name: Restore cached Anchor CLI binary
+        id: cache-anchor-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
+          key: ${{ runner.os }}-anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}-${{ github.event.inputs.rust_version }}
       - name: Build Anchor CLI
+        if: steps.cache-anchor-restore.outputs.cache-hit != 'true'
         run: |
           if [ -n "${{ github.event.inputs.rev }}" ]; then
             RUSTFLAGS='-C target-feature=+crt-static' cargo install --git https://github.com/coral-xyz/anchor --rev ${{ github.event.inputs.rev }} --target ${{ github.event.inputs.target }} anchor-cli --locked
@@ -73,6 +80,13 @@ jobs:
             RUSTFLAGS='-C target-feature=+crt-static' cargo install --git https://github.com/coral-xyz/anchor --tag v${VERSION} --target ${{ github.event.inputs.target }} anchor-cli --locked
           fi
           mv ~/.cargo/bin/anchor ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
+
+      - name: Save Anchor CLI binary cache
+        if: steps.cache-anchor-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
+          key: ${{ runner.os }}-anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}-${{ github.event.inputs.rust_version }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
