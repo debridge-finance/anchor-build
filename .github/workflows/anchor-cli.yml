@@ -67,7 +67,7 @@ jobs:
           mv ~/.cargo/bin/anchor ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
 
       - name: Upload Anchor CLI binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
           path: ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
