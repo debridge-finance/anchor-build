@@ -44,7 +44,7 @@ jobs:
         if: steps.cache-anchor-restore.outputs.cache-hit != 'true'
         run: |
           mkdir -p /home/runner/.local/bin
-          DOWNLOAD_URL="https://github.com/YOUR_REPO_OWNER/YOUR_REPO_NAME/releases/download/anchor-${{ steps.set_version.outputs.version_or_rev }}/anchor-${{ inputs.target }}"
+          DOWNLOAD_URL="https://github.com/debridge-finance/anchor-build/releases/download/anchor-${{ steps.set_version.outputs.version_or_rev }}/anchor-${{ inputs.target }}"
           curl -L $DOWNLOAD_URL -o /home/runner/.local/bin/anchor
           chmod +x /home/runner/.local/bin/anchor
 
