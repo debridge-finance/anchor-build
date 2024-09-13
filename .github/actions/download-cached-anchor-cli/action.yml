@@ -26,6 +26,7 @@ runs:
         else
           echo "version_or_rev=0.30.1" >> $GITHUB_OUTPUT
         fi
+        echo "Using version_or_rev: ${{ steps.set_version.outputs.version_or_rev }}"
 
     - name: Restore cached Anchor CLI binary
       uses: actions/cache/restore@v4
@@ -40,7 +41,10 @@ runs:
       run: |
         mkdir -p /home/runner/.local/bin
         DOWNLOAD_URL="https://github.com/debridge-finance/anchor-build/releases/download/anchor-${{ steps.set_version.outputs.version_or_rev }}/anchor-${{ inputs.target }}"
-        curl -L $DOWNLOAD_URL -o /home/runner/.local/bin/anchor
+        echo "Downloading from: $DOWNLOAD_URL"
+        curl -L -v $DOWNLOAD_URL -o /home/runner/.local/bin/anchor
+        ls -l /home/runner/.local/bin/anchor
+        file /home/runner/.local/bin/anchor
         chmod +x /home/runner/.local/bin/anchor
 
     - name: Save Anchor CLI binary cache
@@ -54,10 +58,21 @@ runs:
       shell: bash
       run: |
         echo "/home/runner/.local/bin" >> $GITHUB_PATH
-        echo "Anchor CLI is now available as 'anchor' command"
+        echo "Anchor CLI path added to GITHUB_PATH"
 
     - name: Verify Anchor CLI installation
       shell: bash
       run: |
+        echo "PATH: $PATH"
         which anchor
+        file $(which anchor)
+        ls -l $(which anchor)
         anchor --version
+
+    - name: Debug if Anchor CLI fails
+      if: failure()
+      shell: bash
+      run: |
+        echo "Debug information:"
+        ls -la /home/runner/.local/bin
+        cat /home/runner/.local/bin/anchor
