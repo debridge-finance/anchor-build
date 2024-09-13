@@ -68,7 +68,7 @@ jobs:
         id: cache-anchor-restore
         uses: actions/cache/restore@v4
         with:
-          path: ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
+          path: ${{ github.workspace }}/anchor-cli-bin
           key: ${{ runner.os }}-anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}-${{ github.event.inputs.rust_version }}
 
       - name: Build Anchor CLI
@@ -80,14 +80,20 @@ jobs:
             VERSION="${{ github.event.inputs.anchor_version }}"
             RUSTFLAGS='-C target-feature=+crt-static' cargo install --git https://github.com/coral-xyz/anchor --tag v${VERSION} --target ${{ github.event.inputs.target }} anchor-cli --locked
           fi
-          mv ~/.cargo/bin/anchor ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
+          mkdir -p ${{ github.workspace }}/anchor-cli-bin
+          mv ~/.cargo/bin/anchor ${{ github.workspace }}/anchor-cli-bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
 
       - name: Save Anchor CLI binary cache
         if: steps.cache-anchor-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
+          path: ${{ github.workspace }}/anchor-cli-bin
           key: ${{ runner.os }}-anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}-${{ github.event.inputs.rust_version }}
+
+      - name: Debug - List files
+        run: |
+          ls -la ${{ github.workspace }}/anchor-cli-bin
+          ls -la ~/.cargo/bin
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -95,7 +101,7 @@ jobs:
           tag_name: anchor-${{ steps.set_version.outputs.version_or_rev }}
           name: Anchor CLI ${{ steps.set_version.outputs.version_or_rev }}
           body: "This release contains Anchor CLI binary for ${{ github.event.inputs.target }} target."
-          files: ~/.cargo/bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
+          files: ${{ github.workspace }}/anchor-cli-bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
           draft: false
           prerelease: false
 
