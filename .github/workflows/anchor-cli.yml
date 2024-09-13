@@ -90,10 +90,13 @@ jobs:
           path: ${{ github.workspace }}/anchor-cli-bin
           key: ${{ runner.os }}-anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}-${{ github.event.inputs.rust_version }}
 
+      - name: Prepare binary for release
+        run: |
+          cp ${{ github.workspace }}/anchor-cli-bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }} ${{ github.workspace }}/anchor-cli-bin/anchor-${{ github.event.inputs.target }}
+
       - name: Debug - List files
         run: |
           ls -la ${{ github.workspace }}/anchor-cli-bin
-          ls -la ~/.cargo/bin
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -101,11 +104,12 @@ jobs:
           tag_name: anchor-${{ steps.set_version.outputs.version_or_rev }}
           name: Anchor CLI ${{ steps.set_version.outputs.version_or_rev }}
           body: "This release contains Anchor CLI binary for ${{ github.event.inputs.target }} target."
-          files: ${{ github.workspace }}/anchor-cli-bin/anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}
+          files: ${{ github.workspace }}/anchor-cli-bin/anchor-${{ github.event.inputs.target }}
           draft: false
           prerelease: false
 
       - name: Get Release URL
         run: |
           echo "Release URL: ${{ steps.release.outputs.url }}"
-          echo "Binary name: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ github.event.inputs.target }}"
+          echo "Binary name: anchor-${{ github.event.inputs.target }}"
+          echo "Download URL: ${{ steps.release.outputs.url }}/download/anchor-${{ steps.set_version.outputs.version_or_rev }}/anchor-${{ github.event.inputs.target }}"
