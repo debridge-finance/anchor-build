@@ -1,66 +1,63 @@
-name: Download and Setup Cached Anchor CLI
+name: 'Download and Setup Cached Anchor CLI'
+description: 'Downloads and sets up the Anchor CLI, caching it for faster subsequent runs'
+inputs:
+  rev:
+    description: 'Anchor revision to download'
+    required: false
+  version:
+    description: 'Anchor version to download'
+    required: false
+    default: '0.30.1'
+  target:
+    description: 'Build target'
+    required: false
+    default: 'x86_64-unknown-linux-musl'
+runs:
+  using: "composite"
+  steps:
+    - name: Set version or rev
+      id: set_version
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.rev }}" ]; then
+          echo "version_or_rev=${{ inputs.rev }}" >> $GITHUB_OUTPUT
+        elif [ -n "${{ inputs.version }}" ]; then
+          echo "version_or_rev=${{ inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version_or_rev=0.30.1" >> $GITHUB_OUTPUT
+        fi
 
-on:
-  workflow_call:
-    inputs:
-      rev:
-        description: 'Anchor revision to download'
-        required: false
-        type: string
-      version:
-        description: 'Anchor version to download'
-        required: false
-        type: string
-        default: '0.30.1'
-      target:
-        description: 'Build target'
-        required: false
-        type: string
-        default: 'x86_64-unknown-linux-musl'
+    - name: Restore cached Anchor CLI binary
+      uses: actions/cache/restore@v4
+      id: cache-anchor-restore
+      with:
+        path: /home/runner/.local/bin/anchor
+        key: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ inputs.target }}
 
-jobs:
-  setup-anchor-cli:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set version or rev
-        id: set_version
-        run: |
-          if [ -n "${{ inputs.rev }}" ]; then
-            echo "version_or_rev=${{ inputs.rev }}" >> $GITHUB_OUTPUT
-          elif [ -n "${{ inputs.version }}" ]; then
-            echo "version_or_rev=${{ inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "version_or_rev=0.30.1" >> $GITHUB_OUTPUT
-          fi
+    - name: Download and setup Anchor CLI binary if not cached
+      if: steps.cache-anchor-restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        mkdir -p /home/runner/.local/bin
+        DOWNLOAD_URL="https://github.com/debridge-finance/anchor-build/releases/download/anchor-${{ steps.set_version.outputs.version_or_rev }}/anchor-${{ inputs.target }}"
+        curl -L $DOWNLOAD_URL -o /home/runner/.local/bin/anchor
+        chmod +x /home/runner/.local/bin/anchor
 
-      - name: Restore cached Anchor CLI binary
-        id: cache-anchor-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: /home/runner/.local/bin/anchor
-          key: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ inputs.target }}
+    - name: Save Anchor CLI binary cache
+      if: steps.cache-anchor-restore.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: /home/runner/.local/bin/anchor
+        key: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ inputs.target }}
 
-      - name: Download and setup Anchor CLI binary if not cached
-        if: steps.cache-anchor-restore.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p /home/runner/.local/bin
-          DOWNLOAD_URL="https://github.com/debridge-finance/anchor-build/releases/download/anchor-${{ steps.set_version.outputs.version_or_rev }}/anchor-${{ inputs.target }}"
-          curl -L $DOWNLOAD_URL -o /home/runner/.local/bin/anchor
-          chmod +x /home/runner/.local/bin/anchor
+    - name: Add Anchor CLI to PATH
+      shell: bash
+      run: |
+        echo "/home/runner/.local/bin" >> $GITHUB_PATH
+        echo "Anchor CLI is now available as 'anchor' command"
 
-      - name: Save Anchor CLI binary cache
-        if: steps.cache-anchor-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: /home/runner/.local/bin/anchor
-          key: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ inputs.target }}
-
-      - name: Add Anchor CLI to PATH
-        run: |
-          echo "/home/runner/.local/bin" >> $GITHUB_PATH
-          echo "Anchor CLI is now available as 'anchor' command"
-
-      - name: Verify Anchor CLI installation
-        run: |
-          which anchor
-          anchor --version
+    - name: Verify Anchor CLI installation
+      shell: bash
+      run: |
+        which anchor
+        anchor --version
