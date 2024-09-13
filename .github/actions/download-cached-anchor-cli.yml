@@ -1,0 +1,68 @@
+name: Download Cached Anchor CLI
+
+on:
+  workflow_call:
+    inputs:
+      rev:
+        description: 'Anchor revision to download'
+        required: false
+        type: string
+      version:
+        description: 'Anchor version to download'
+        required: false
+        type: string
+        default: '0.30.1'
+      target:
+        description: 'Build target'
+        required: false
+        type: string
+        default: 'x86_64-unknown-linux-musl'
+
+jobs:
+  download-anchor-cli:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set version or rev
+        id: set_version
+        run: |
+          if [ -n "${{ inputs.rev }}" ]; then
+            echo "version_or_rev=${{ inputs.rev }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ inputs.version }}" ]; then
+            echo "version_or_rev=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version_or_rev=0.30.1" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Restore cached Anchor CLI binary
+        id: cache-anchor-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/anchor-cli-bin
+          key: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ inputs.target }}
+
+      - name: Download Anchor CLI binary if not cached
+        if: steps.cache-anchor-restore.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ${{ github.workspace }}/anchor-cli-bin
+          DOWNLOAD_URL="https://github.com/debridge-finance/anchor-build/releases/download/anchor-${{ steps.set_version.outputs.version_or_rev }}/anchor-${{ inputs.target }}"
+          curl -L $DOWNLOAD_URL -o ${{ github.workspace }}/anchor-cli-bin/anchor-${{ inputs.target }}
+          chmod +x ${{ github.workspace }}/anchor-cli-bin/anchor-${{ inputs.target }}
+
+      - name: Save Anchor CLI binary cache
+        if: steps.cache-anchor-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/anchor-cli-bin
+          key: anchor-${{ steps.set_version.outputs.version_or_rev }}-${{ inputs.target }}
+
+      - name: Rename binary to 'anchor'
+        run: |
+          mv ${{ github.workspace }}/anchor-cli-bin/anchor-${{ inputs.target }} ${{ github.workspace }}/anchor-cli-bin/anchor
+          chmod +x ${{ github.workspace }}/anchor-cli-bin/anchor
+
+      - name: Set output
+        id: set_output
+        run: echo "anchor_cli_path=${{ github.workspace }}/anchor-cli-bin/anchor" >> $GITHUB_OUTPUT
+
+    outputs:
+      anchor_cli_path: ${{ steps.set_output.outputs.anchor_cli_path }}
